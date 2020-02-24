@@ -1,16 +1,18 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using System.IO;
 
 namespace InterviewDemo
 {
     public class ShipmentCalculator
     {
         private const double AvailablePlaneVolume = 10000;
-        private const double AvailalbeTruckVolume = 1500;
+        private const double AvailableTruckVolume = 1500;
         public IEnumerable<Shipment> CreateShipments(string orderFilePath)
         {
             var orderedItems = GetOrderItems(orderFilePath);
-            var itemsForTrucks = new List<ShippingBox>();
-            var itemsForPlanes = new List<ShippingBox>();
+            var itemsForTrucks = new List<ProductBox>();
+            var itemsForPlanes = new List<ProductBox>();
 
             foreach(var item in orderedItems)
             {
@@ -31,15 +33,34 @@ namespace InterviewDemo
             return shipments;
         }
 
-        private IEnumerable<ShippingBox> GetOrderItems(string orderFilePath)
+        private IEnumerable<ProductBox> GetOrderItems(string orderFilePath)
         {
+            var order = new List<ProductBox>();
             //read shipping box info from a file
-            //hydrate new objects
-            //return them
-            return new List<ShippingBox>();
+            var orderFileLines = File.ReadAllLines(orderFilePath);
+            //hydrate new objects - our ordering system generates a file
+            // - each ordered box is on a separate line
+            // - each line is pipe separated
+            foreach (var line in orderFileLines)
+            {
+                var orderedItem = line.Split('|');
+                order.Add(new ProductBox
+                {
+                    ProductId = int.Parse(orderedItem[0]),
+                    Height = double.Parse(orderedItem[1]),
+                    Width = double.Parse(orderedItem[2]),
+                    Length = double.Parse(orderedItem[3]),
+                    Weight = double.Parse(orderedItem[4]),
+                    ProductDescription = orderedItem[5],
+                    ProductCost = decimal.Parse(orderedItem[6]),
+                    ProductCategory = Enum.Parse<ProductCategory>(orderedItem[7])
+                });
+            }
+            //return the parsed order
+            return order;
         }
 
-        private IEnumerable<Shipment> CreatePlaneShipments(List<ShippingBox> itemsForPlanes)
+        private IEnumerable<Shipment> CreatePlaneShipments(List<ProductBox> itemsForPlanes)
         {
             //naive packing algorithm
             var shipments = new List<Shipment>();
@@ -63,12 +84,12 @@ namespace InterviewDemo
             
         }
 
-        private IEnumerable<Shipment> CreateTruckShipments(List<ShippingBox> itemsForTrucks)
+        private IEnumerable<Shipment> CreateTruckShipments(List<ProductBox> itemsForTrucks)
         {
             //naive packing algorithm
             var shipments = new List<Shipment>();
             var currentShipment = new Shipment();
-            var availableVolume = AvailalbeTruckVolume;
+            var availableVolume = AvailableTruckVolume;
             foreach (var item in itemsForTrucks)
             {
                 if (availableVolume >= item.Volume)
@@ -80,7 +101,7 @@ namespace InterviewDemo
                 {
                     shipments.Add(currentShipment);
                     currentShipment = new Shipment();
-                    availableVolume = AvailalbeTruckVolume;
+                    availableVolume = AvailableTruckVolume;
                 }
             }
             return shipments;
